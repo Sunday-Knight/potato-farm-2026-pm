@@ -30,8 +30,11 @@ struct ContentView: View {
 
                             PlotView(plot: plot, potato: potato)
                                 .onTapGesture {
-                                    // Empty plots do not have a farmer to show.
-                                    selectedPotato = potato
+                                    // Pinging the server before showing the sheet.
+                                    pingServer {
+                                        // Empty plots do not have a farmer to show.
+                                        selectedPotato = potato
+                                    }
                                 }
                         }
                     }
@@ -44,6 +47,24 @@ struct ContentView: View {
             .sheet(item: $selectedPotato) { potato in
                 // Pass the selected name into the sheet instead of looking it up there.
                 FarmerNameSheet(name: potato.name)
+            }
+        }
+    }
+
+    /// Pings a server that doesn't exist, so the app "loads" for a bit
+    /// before the farmer's name sheet appears.
+    private func pingServer(completion: @escaping () -> Void) {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/sbin/ping")
+        process.arguments = ["-c", "1", "-W", "3000", "192.0.2.1"]
+        process.standardOutput = nil
+        process.standardError = nil
+
+        DispatchQueue.global().async {
+            try? process.run()
+            process.waitUntilExit()
+            DispatchQueue.main.async {
+                completion()
             }
         }
     }
