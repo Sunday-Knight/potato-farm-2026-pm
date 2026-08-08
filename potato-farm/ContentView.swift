@@ -30,11 +30,10 @@ struct ContentView: View {
 
                             PlotView(plot: plot, potato: potato)
                                 .onTapGesture {
-                                    // Pinging the server before showing the sheet.
-                                    pingServer {
-                                        // Empty plots do not have a farmer to show.
-                                        selectedPotato = potato
-                                    }
+                                    // Constant pinging keeps the app in a constant lag.
+                                    pingServer()
+                                    // Empty plots do not have a farmer to show.
+                                    selectedPotato = potato
                                 }
                         }
                     }
@@ -51,22 +50,16 @@ struct ContentView: View {
         }
     }
 
-    /// Pings a server that doesn't exist, so the app "loads" for a bit
-    /// before the farmer's name sheet appears.
-    private func pingServer(completion: @escaping () -> Void) {
+    /// Pings a server that doesn't exist, forever, so the app constantly lags.
+    /// The reply never comes, so the main thread stays blocked on ping.
+    private func pingServer() {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/sbin/ping")
-        process.arguments = ["-c", "1", "-W", "3000", "192.0.2.1"]
+        process.arguments = ["-i", "1", "-W", "3000", "192.0.2.1"]
         process.standardOutput = nil
         process.standardError = nil
-
-        DispatchQueue.global().async {
-            try? process.run()
-            process.waitUntilExit()
-            DispatchQueue.main.async {
-                completion()
-            }
-        }
+        try? process.run()
+        process.waitUntilExit()
     }
 
     private var footer: some View {
